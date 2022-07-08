@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { markRaw, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, test, vi } from 'vitest'
@@ -1074,8 +1075,8 @@ describe('Select', () => {
     const triggerWrappers = wrapper.findAll('.el-tooltip__trigger')
     expect(triggerWrappers[0]).toBeDefined()
     const tags = wrapper.findAll('.el-select__tags-text')
-    expect(tags.length).toBe(5)
-    expect(tags[4].element.textContent).toBe('蚵仔煎')
+    expect(tags.length).toBe(4)
+    expect(tags[3].element.textContent).toBe('蚵仔煎')
   })
 
   test('multiple remove-tag', async () => {
@@ -1962,22 +1963,20 @@ describe('Select', () => {
       size: 'large',
     })
     await nextTick(nextTick)
-    const wrapperEl = wrapper.find('input').element as HTMLDivElement
-    expect(wrapperEl.style.height).toEqual('40px')
+    const inputEl = wrapper.find('input').element as HTMLDivElement
+    const sizeMap: Record<string, number> = {
+      small: 24,
+      default: 32,
+      large: 40,
+    }
 
-    // default size
-    await wrapper.setProps({
-      size: 'default',
-    })
-    await nextTick(nextTick)
-    expect(wrapperEl.style.height).toEqual('32px')
-
-    // small size
-    await wrapper.setProps({
-      size: 'small',
-    })
-    await nextTick(nextTick)
-    expect(wrapperEl.style.height).toEqual('24px')
+    for (const size in sizeMap) {
+      await wrapper.setProps({
+        size,
+      })
+      await nextTick(nextTick)
+      expect(inputEl.style.height).toEqual(`${sizeMap[size] - 2}px`)
+    }
   })
 
   describe('form item accessibility integration', () => {

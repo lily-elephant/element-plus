@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ElCheckbox from '@element-plus/components/checkbox'
@@ -1429,5 +1430,32 @@ describe('Table.vue', () => {
     expect(wrapper.find('.el-table__body thead').exists()).toBeTruthy()
     expect(wrapper.find('.el-table__body colgroup col').exists()).toBeFalsy()
     expect(wrapper.find('.el-table__body tbody').exists()).toBeTruthy()
+  })
+
+  it('automatic minimum size of flex-items', async () => {
+    const wrapper = mount({
+      components: {
+        ElTable,
+        ElTableColumn,
+      },
+      template: `
+        <div class="right">
+          <el-table flexible :data="testData" table-layout="auto">
+            <el-table-column prop="id" />
+            <el-table-column prop="name" label="片名" />
+            <el-table-column prop="release" label="发行日期" />
+            <el-table-column prop="director" label="导演" />
+            <el-table-column prop="runtime" label="时长（分）" />
+          </el-table>
+        </div>
+      `,
+      created() {
+        this.testData = getTestData()
+      },
+    })
+    await nextTick()
+    expect(wrapper.find('.right').element.getAttribute('style')).toContain(
+      'min-width: 0'
+    )
   })
 })

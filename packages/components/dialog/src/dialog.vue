@@ -30,27 +30,29 @@
             focus-start-el="container"
             @focus-after-trapped="onOpenAutoFocus"
             @focus-after-released="onCloseAutoFocus"
+            @release-requested="onCloseRequested"
           >
             <el-dialog-content
               v-if="rendered"
+              ref="dialogContentRef"
               :custom-class="customClass"
               :center="center"
               :close-icon="closeIcon"
               :draggable="draggable"
               :fullscreen="fullscreen"
               :show-close="showClose"
-              :style="style"
               :title="title"
               @close="handleClose"
             >
               <template #header>
                 <slot
+                  v-if="!$slots.title"
                   name="header"
                   :close="handleClose"
                   :title-id="titleId"
                   :title-class="ns.e('title')"
                 />
-                <slot name="title" />
+                <slot v-else name="title" />
               </template>
               <slot />
               <template v-if="$slots.footer" #footer>
@@ -67,12 +69,7 @@
 <script lang="ts" setup>
 import { computed, provide, ref, useSlots } from 'vue'
 import { ElOverlay } from '@element-plus/components/overlay'
-import {
-  useDeprecated,
-  useDraggable,
-  useNamespace,
-  useSameTarget,
-} from '@element-plus/hooks'
+import { useDeprecated, useNamespace, useSameTarget } from '@element-plus/hooks'
 import { dialogInjectionKey } from '@element-plus/tokens'
 import ElFocusTrap from '@element-plus/components/focus-trap'
 import ElDialogContent from './dialog-content.vue'
@@ -92,7 +89,7 @@ useDeprecated(
     scope: 'el-dialog',
     from: 'the title slot',
     replacement: 'the header slot',
-    version: '2.3.0',
+    version: '3.0.0',
     ref: 'https://element-plus.org/en-US/component/dialog.html#slots',
   },
   computed(() => !!slots.title)
@@ -101,6 +98,7 @@ useDeprecated(
 const ns = useNamespace('dialog')
 const dialogRef = ref<HTMLElement>()
 const headerRef = ref<HTMLElement>()
+const dialogContentRef = ref()
 
 const {
   visible,
@@ -116,6 +114,7 @@ const {
   onModalClick,
   onOpenAutoFocus,
   onCloseAutoFocus,
+  onCloseRequested,
 } = useDialog(props, dialogRef)
 
 provide(dialogInjectionKey, {
@@ -131,10 +130,9 @@ const overlayEvent = useSameTarget(onModalClick)
 
 const draggable = computed(() => props.draggable && !props.fullscreen)
 
-useDraggable(dialogRef, headerRef, draggable)
-
 defineExpose({
   /** @description whether the dialog is visible */
   visible,
+  dialogContentRef,
 })
 </script>

@@ -1,25 +1,18 @@
+// @ts-nocheck
 import {
   computed,
   nextTick,
-  onBeforeUnmount,
   onMounted,
   ref,
   unref,
   watch,
   watchEffect,
 } from 'vue'
-import {
-  addResizeListener,
-  isNumber,
-  isString,
-  off,
-  on,
-  removeResizeListener,
-} from '@element-plus/utils'
+import { useEventListener, useResizeObserver } from '@vueuse/core'
+import { isNumber, isString } from '@element-plus/utils'
 import { useSize } from '@element-plus/hooks'
 import { parseHeight } from '../util'
 
-import type { ResizableElement } from '@element-plus/utils'
 import type { Table, TableProps } from './defaults'
 import type { Store } from '../store'
 import type TableLayout from '../table-layout'
@@ -37,13 +30,16 @@ function useStyle<T>(
   const setDragVisible = (visible: boolean) => {
     resizeProxyVisible.value = visible
   }
-  const resizeState = ref({
+  const resizeState = ref<{
+    width: null | number
+    height: null | number
+  }>({
     width: null,
     height: null,
   })
   const isGroup = ref(false)
   const scrollbarViewStyle = {
-    display: 'inline-block',
+    display: 'block',
     verticalAlign: 'middle',
   }
   const tableWidth = ref()
@@ -120,9 +116,16 @@ function useStyle<T>(
     bindEvents()
     requestAnimationFrame(doLayout)
 
+    const el: HTMLElement = table.vnode.el as HTMLElement
+    if (props.flexible && el && el.parentElement) {
+      // Automatic minimum size of flex-items
+      // Ensure that the main axis does not follow the width of the items
+      el.parentElement.style.minWidth = '0'
+    }
+
     resizeState.value = {
-      width: (tableWidth.value = table.vnode.el.offsetWidth),
-      height: table.vnode.el.offsetHeight,
+      width: (tableWidth.value = el.offsetWidth),
+      height: el.offsetHeight,
     }
 
     // init filters
@@ -180,28 +183,15 @@ function useStyle<T>(
 
   const bindEvents = () => {
     if (!table.refs.scrollBarRef) return
-    table.refs.scrollBarRef.wrap$?.addEventListener('scroll', syncPostion, {
-      passive: true,
-    })
-    if (props.fit) {
-      addResizeListener(table.vnode.el as ResizableElement, resizeListener)
-    } else {
-      on(window, 'resize', doLayout)
+    if (table.refs.scrollBarRef.wrap$) {
+      useEventListener(table.refs.scrollBarRef.wrap$, 'scroll', syncPostion, {
+        passive: true,
+      })
     }
-  }
-  onBeforeUnmount(() => {
-    unbindEvents()
-  })
-  const unbindEvents = () => {
-    table.refs.scrollBarRef.wrap$?.removeEventListener(
-      'scroll',
-      syncPostion,
-      true
-    )
     if (props.fit) {
-      removeResizeListener(table.vnode.el as ResizableElement, resizeListener)
+      useResizeObserver(table.vnode.el as HTMLElement, resizeListener)
     } else {
-      off(window, 'resize', doLayout)
+      useEventListener(window, 'resize', resizeListener)
     }
   }
   const resizeListener = () => {
